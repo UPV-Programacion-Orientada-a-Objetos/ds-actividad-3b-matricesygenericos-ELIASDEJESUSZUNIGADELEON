@@ -18,10 +18,15 @@ int main() {
         B(1,0) = 2.0f; B(1,1) = 1.0f;
         B(2,0) = 1.0f; B(2,1) = 2.5f;
 
-        auto Af = MatrizDinamica<float>::multiplicar(MatrizDinamica<float>(A), B);
-        // Nota: La conversion de A(int) a MatrizDinamica<float> por constructor implicito
+    std::cout << "Matriz A (int, redimensionada a 3x3):" << std::endl;
+    std::cout << A << std::endl << std::endl;
 
-        std::cout << "Matriz resultante creada (demo)." << std::endl;
+    std::cout << "Matriz B (float):" << std::endl;
+    std::cout << B << std::endl << std::endl;
+
+    auto Af = MatrizDinamica<float>::multiplicar(MatrizDinamica<float>(A), B);
+    std::cout << "Matriz C = A * B (float):" << std::endl;
+    std::cout << Af << std::endl << std::endl;
     } catch (const std::exception &ex) {
         std::cerr << "Error: " << ex.what() << std::endl;
         return 1;

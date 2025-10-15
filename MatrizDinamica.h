@@ -120,6 +120,25 @@ public:
         return datos[i][j];
     }
 
+    // print en formato tabla
+    void print(std::ostream &os = std::cout) const {
+        if (!datos) {
+            os << "[]";
+            return;
+        }
+        for (int i = 0; i < filas; ++i) {
+            os << "| ";
+            for (int j = 0; j < columnas; ++j) {
+                os << datos[i][j];
+                if (j + 1 < columnas) os << " | ";
+            }
+            os << " |";
+            if (i + 1 < filas) os << '\n';
+        }
+    }
+
+
+// (operator<< se define despues del cierre de la clase)
     //redimensionar conservando datos validos
     void redimensionar(int nuevaF, int nuevaC) {
         if (nuevaF <= 0 || nuevaC <= 0) {
@@ -168,4 +187,11 @@ public:
     }
 };
 
-#endif 
+    // sobrecarga de operator<< para impresion facil (fuera de la clase)
+    template <typename T>
+    std::ostream& operator<<(std::ostream &os, const MatrizDinamica<T> &m) {
+        m.print(os);
+        return os;
+    }
+
+    #endif
