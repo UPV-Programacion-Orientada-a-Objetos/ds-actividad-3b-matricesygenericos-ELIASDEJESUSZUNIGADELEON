@@ -3,30 +3,71 @@
 
 int main() {
     try {
-        std::cout << "Prueba Matriz ENTERA (int)" << std::endl;
-        MatrizDinamica<int> A(2,3);
-        // llenar A
-        A(0,0) = 1; A(0,1) = 2; A(0,2) = 3;
-        A(1,0) = 4; A(1,1) = 5; A(1,2) = 6;
+        std::cout << "--- Sistema de Analisis de Transformaciones Lineales ---\n";
 
-        std::cout << "Redimensionar A a 3x3" << std::endl;
-        A.redimensionar(3,3);
+        // Leer matriz A (int)
+        std::cout << "Prueba Matriz ENTERA (Matriz A)" << std::endl;
+        int a_f, a_c;
+        std::cout << "Ingresar filas y columnas para A (ej: 2 3): ";
+        if (!(std::cin >> a_f >> a_c)) {
+            std::cerr << "Entrada invalida" << std::endl;
+            return 1;
+        }
+        MatrizDinamica<int> A(a_f, a_c);
+        std::cout << "Ingresar valores para A (" << a_f << "x" << a_c << "):" << std::endl;
+        for (int i = 0; i < a_f; ++i) {
+            for (int j = 0; j < a_c; ++j) {
+                std::cout << "A[" << i << "," << j << "]: ";
+                if (!(std::cin >> A(i,j))) {
+                    std::cerr << "Entrada invalida" << std::endl;
+                    return 1;
+                }
+            }
+        }
 
-        std::cout << "Prueba Matriz FLOAT (float)" << std::endl;
-        MatrizDinamica<float> B(3,2);
-        B(0,0) = 1.5f; B(0,1) = 0.5f;
-        B(1,0) = 2.0f; B(1,1) = 1.0f;
-        B(2,0) = 1.0f; B(2,1) = 2.5f;
+        // Redimensionar A segun ejemplo (opcional)
+        std::cout << "\n>> Redimensionando Matriz A <<" << std::endl;
+        int new_f = a_f + 1; // ejemplo: aumentar una fila
+        int new_c = std::max(a_c, a_c); // mantener columnas
+        A.redimensionar(new_f, new_c);
+        std::cout << "A redimensionada a " << new_f << "x" << new_c << ". Datos conservados:" << std::endl;
+        std::cout << A << std::endl << std::endl;
 
-    std::cout << "Matriz A (int, redimensionada a 3x3):" << std::endl;
-    std::cout << A << std::endl << std::endl;
+        // Leer matriz B (float)
+        std::cout << "Prueba Multiplicacion (Tipo FLOAT) - Matriz B" << std::endl;
+        int b_f, b_c;
+        std::cout << "Ingresar filas y columnas para B (ej: 3 2): ";
+        if (!(std::cin >> b_f >> b_c)) {
+            std::cerr << "Entrada invalida" << std::endl;
+            return 1;
+        }
+        MatrizDinamica<float> B(b_f, b_c);
+        std::cout << "Ingresar valores para B (" << b_f << "x" << b_c << "):" << std::endl;
+        for (int i = 0; i < b_f; ++i) {
+            for (int j = 0; j < b_c; ++j) {
+                std::cout << "B[" << i << "," << j << "]: ";
+                if (!(std::cin >> B(i,j))) {
+                    std::cerr << "Entrada invalida" << std::endl;
+                    return 1;
+                }
+            }
+        }
 
-    std::cout << "Matriz B (float):" << std::endl;
-    std::cout << B << std::endl << std::endl;
+        // Validar dimensiones antes de multiplicar
+        if (A.getColumnas() != B.getFilas()) {
+            std::cerr << "Dimensiones incompatibles para multiplicacion: A.cols=" << A.getColumnas()
+                      << " B.rows=" << B.getFilas() << std::endl;
+            return 1;
+        }
 
-    auto Af = MatrizDinamica<float>::multiplicar(MatrizDinamica<float>(A), B);
-    std::cout << "Matriz C = A * B (float):" << std::endl;
-    std::cout << Af << std::endl << std::endl;
+        // convertir A a float y multiplicar
+        auto Af = MatrizDinamica<float>(A);
+        auto C = MatrizDinamica<float>::multiplicar(Af, B);
+
+        std::cout << "\nMatriz C = A * B (Resultado " << C.getFilas() << "x" << C.getColumnas() << "):" << std::endl;
+        std::cout << C << std::endl << std::endl;
+
+        std::cout << "Liberando memoria de todas las matrices..." << std::endl;
     } catch (const std::exception &ex) {
         std::cerr << "Error: " << ex.what() << std::endl;
         return 1;
