@@ -13,18 +13,37 @@ private:
     int filas;
     int columnas;
 
+    // Allocate f x c matrix. Strong exception safety: no leaks if allocation fails.
     void allocate(int f, int c) {
         if (f <= 0 || c <= 0) {
             datos = nullptr;
             filas = columnas = 0;
             return;
         }
-        datos = new T*[f];
-        for (int i = 0; i < f; ++i) {
-            datos[i] = new T[c];
-            // initialize to zero
-            for (int j = 0; j < c; ++j) datos[i][j] = T();
+        T **tmp = nullptr;
+        try {
+            tmp = new T*[f];
+        } catch (...) {
+            // propagate bad_alloc
+            throw;
         }
+
+        int allocatedRows = 0;
+        try {
+            for (int i = 0; i < f; ++i) {
+                tmp[i] = new T[c];
+                // initialize to zero
+                for (int j = 0; j < c; ++j) tmp[i][j] = T();
+                ++allocatedRows;
+            }
+        } catch (...) {
+            // cleanup partially allocated rows
+            for (int k = 0; k < allocatedRows; ++k) delete[] tmp[k];
+            delete[] tmp;
+            throw;
+        }
+
+        datos = tmp;
         filas = f;
         columnas = c;
     }
@@ -42,7 +61,15 @@ private:
 public:
     //constructor
     MatrizDinamica(int f = 0, int c = 0) : datos(nullptr), filas(0), columnas(0) {
-        if (f > 0 && c > 0) allocate(f, c);
+        if (f > 0 && c > 0) {
+            try {
+                allocate(f, c);
+            } catch (...) {
+                // leave object in valid empty state
+                datos = nullptr; filas = columnas = 0;
+                throw;
+            }
+        }
     }
 
     //destructor
@@ -53,10 +80,15 @@ public:
     //copy constructor
     MatrizDinamica(const MatrizDinamica &other) : datos(nullptr), filas(0), columnas(0) {
         if (other.datos) {
-            allocate(other.filas, other.columnas);
-            for (int i = 0; i < filas; ++i)
-                for (int j = 0; j < columnas; ++j)
-                    datos[i][j] = other.datos[i][j];
+            try {
+                allocate(other.filas, other.columnas);
+                for (int i = 0; i < filas; ++i)
+                    for (int j = 0; j < columnas; ++j)
+                        datos[i][j] = other.datos[i][j];
+            } catch (...) {
+                datos = nullptr; filas = columnas = 0;
+                throw;
+            }
         }
     }
 
@@ -64,10 +96,15 @@ public:
     template <typename U>
     MatrizDinamica(const MatrizDinamica<U> &other) : datos(nullptr), filas(0), columnas(0) {
         if (other.getFilas() > 0 && other.getColumnas() > 0) {
-            allocate(other.getFilas(), other.getColumnas());
-            for (int i = 0; i < filas; ++i)
-                for (int j = 0; j < columnas; ++j)
-                    datos[i][j] = static_cast<T>(other(i,j));
+            try {
+                allocate(other.getFilas(), other.getColumnas());
+                for (int i = 0; i < filas; ++i)
+                    for (int j = 0; j < columnas; ++j)
+                        datos[i][j] = static_cast<T>(other(i,j));
+            } catch (...) {
+                datos = nullptr; filas = columnas = 0;
+                throw;
+            }
         }
     }
 
@@ -81,7 +118,18 @@ public:
     MatrizDinamica& operator=(const MatrizDinamica &other) {
         if (this == &other) return *this;
         // allocate new storage then swap
-        MatrizDinamica tmp(other);
+        MatrizDinamica tmp;
+        if (other.datos) {
+            try {
+                tmp.allocate(other.filas, other.columnas);
+                for (int i = 0; i < other.filas; ++i)
+                    for (int j = 0; j < other.columnas; ++j)
+                        tmp.datos[i][j] = other.datos[i][j];
+            } catch (...) {
+                // leave this unchanged and rethrow
+                throw;
+            }
+        }
         swap(tmp);
         return *this;
     }
@@ -147,23 +195,35 @@ public:
             return;
         }
 
-        T **nuevo = new T*[nuevaF];
-        for (int i = 0; i < nuevaF; ++i) {
-            nuevo[i] = new T[nuevaC];
-            for (int j = 0; j < nuevaC; ++j) nuevo[i][j] = T();
+        T **nuevo = nullptr;
+        try {
+            nuevo = new T*[nuevaF];
+            for (int i = 0; i < nuevaF; ++i) {
+                nuevo[i] = new T[nuevaC];
+                for (int j = 0; j < nuevaC; ++j) nuevo[i][j] = T();
+            }
+        } catch (...) {
+            // cleanup if partially allocated
+            if (nuevo) {
+                for (int k = 0; k < nuevaF; ++k) {
+                    if (nuevo[k]) delete[] nuevo[k];
+                }
+                delete[] nuevo;
+            }
+            throw;
         }
 
-        //copiar datos
+        // copiar datos
         int minF = std::min(filas, nuevaF);
         int minC = std::min(columnas, nuevaC);
         for (int i = 0; i < minF; ++i)
             for (int j = 0; j < minC; ++j)
                 nuevo[i][j] = datos[i][j];
 
-        //liberar antiguo
+        // liberar antiguo
         deallocate();
 
-        //asignar nuevo
+        // asignar nuevo
         datos = nuevo;
         filas = nuevaF;
         columnas = nuevaC;
